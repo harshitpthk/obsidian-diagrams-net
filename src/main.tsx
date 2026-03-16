@@ -86,17 +86,35 @@ export default class DiagramsNet extends Plugin {
 		return workspace.activeLeaf?.getDisplayText();
 	}
 
-	async availablePath() {
-		// @ts-ignore: Type not documented.
-		const base = await this.vault.getAvailablePathForAttachments('Diagram', 'svg')
+	availablePath() {
+		const activeFilePath = this.activeLeafPath(this.workspace);
+		let folderPath = '';
+		if (activeFilePath) {
+			const lastSlash = activeFilePath.lastIndexOf('/');
+			if (lastSlash >= 0) {
+				folderPath = activeFilePath.substring(0, lastSlash);
+			}
+		}
+
+		const baseName = 'Diagram';
+		const extension = 'svg';
+		let svgPath = folderPath ? `${folderPath}/${baseName}.${extension}` : `${baseName}.${extension}`;
+		let counter = 1;
+
+		while (this.vault.getAbstractFileByPath(svgPath)) {
+			const name = `${baseName} ${counter}`;
+			svgPath = folderPath ? `${folderPath}/${name}.${extension}` : `${name}.${extension}`;
+			counter++;
+		}
+
 		return {
-			svgPath: base,
-			xmlPath: this.getXmlPath(base)
+			svgPath,
+			xmlPath: this.getXmlPath(svgPath)
 		}
 	}
 
 	async attemptNewDiagram() {
-		const { svgPath, xmlPath } = await this.availablePath()
+		const { svgPath, xmlPath } = this.availablePath()
 		const fileInfo = {
 			path: this.activeLeafPath(this.workspace),
 			basename: this.activeLeafName(this.workspace),
